@@ -1,0 +1,12 @@
+{
+  "name": "pactling-demo",
+  "private": true,
+  "description": "Three services with consumer-driven contracts, a pipeline that gates deployments with can-i-deploy, run against pactling and the Ruby Pact broker side by side",
+  "scripts": {
+    "test": "node --test services/*/*.unit.test.js"
+  },
+  "devDependencies": {
+    "@pact-foundation/pact": "13.2.0",
+    "@pact-foundation/pact-cli": "16.1.2"
+  }
+}

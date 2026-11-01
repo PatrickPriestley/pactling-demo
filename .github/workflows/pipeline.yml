@@ -1,0 +1,42 @@
+name: contract pipeline
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'   # weekly, so a new pactling release is exercised without a push
+jobs:
+  side-by-side:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Start pactling and the Ruby broker
+        run: |
+          docker compose up -d
+          for url in http://localhost:9393 http://localhost:9292; do
+            for _ in $(seq 1 90); do curl -sf -o /dev/null "$url/" && break; sleep 2; done
+            curl -sf -o /dev/null "$url/" || { docker compose logs; exit 1; }
+          done
+      - name: Run three commits through both brokers and compare the verdicts
+        run: scripts/run-all.sh
+      - name: Expected verdicts
+        run: |
+          for broker in pactling ruby; do
+            expect() { [ "$(cat out/$broker/$1/can-i-deploy-$2.exit)" = "$3" ] || { echo "$broker $1 $2: expected exit $3"; exit 1; }; }
+            expect c1 payments-api 0; expect c1 orders-api 0; expect c1 web 0
+            expect c2 payments-api 0; expect c2 orders-api 0; expect c2 web 1
+            expect c3 payments-api 0; expect c3 orders-api 0; expect c3 web 0
+          done
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verdicts
+          path: out/
+      - if: failure()
+        run: docker compose logs --tail 200

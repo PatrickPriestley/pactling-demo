@@ -1,0 +1,17 @@
+# Both brokers side by side for running the pipeline locally:
+#   docker compose up -d
+#   scripts/run-all.sh
+services:
+  pactling:
+    image: ghcr.io/patrickpriestley/pactling:v0.1.0
+    ports: ["9393:9292"]
+  postgres:
+    image: postgres:16
+    environment: { POSTGRES_USER: pact, POSTGRES_PASSWORD: pact, POSTGRES_DB: pact }
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U pact"], interval: 2s, retries: 30 }
+  ruby-broker:
+    image: pactfoundation/pact-broker:3.0.0-pactbroker2.121.2
+    depends_on: { postgres: { condition: service_healthy } }
+    environment:
+      PACT_BROKER_DATABASE_URL: postgres://pact:pact@postgres/pact
+    ports: ["9292:9292"]
