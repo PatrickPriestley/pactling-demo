@@ -3,7 +3,7 @@
 #   scripts/run-all.sh
 services:
   pactling:
-    image: ghcr.io/patrickpriestley/pactling:v0.1.0
+    image: ghcr.io/patrickpriestley/pactling:v0.1.1
     ports: ["9393:9292"]
   postgres:
     image: postgres:16
